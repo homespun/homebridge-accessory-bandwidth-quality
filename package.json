@@ -1,0 +1,42 @@
+{
+  "name": "homebridge-accessory-bandwidth-quality",
+  "version": "0.0.1",
+  "description": "A accessory plugin for Homebridge: https://github.com/nfarina/homebridge",
+  "author": {
+    "name": "Marshall Rose",
+    "email": "mrose17@homespun.io"
+  },
+  "main": "index.js",
+  "scripts": {
+    "lint": "jshint package.json *.js"
+  },
+  "license": "MIT",
+  "keywords": [
+    "homebridge-plugin",
+    "bandwidth",
+    "bandwidth-quality",
+    "broadband",
+    "download",
+    "speed"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/homespun/homebridge-accessory-bandwidth-quality.git"
+  },
+  "bugs": {
+    "url": "https://github.com/homespun/homebridge-accessory-bandwidth-quality/issues"
+  },
+  "engines": {
+    "node": ">=0.12.0",
+    "homebridge": ">=0.4.16"
+  },
+  "dependencies": {
+    "debug": "~2.6.9",
+    "fakegato-history": "^0.5.1",
+    "fast-speedtest-api": "^0.3.1",
+    "hap-nodejs-community-types": "https://github.com/homespun/hap-nodejs-community-types.git",
+    "node-cache": "3.0.0",
+    "pkginfo": ">=0.4.0",
+    "underscore": "1.8.3"
+  }
+}

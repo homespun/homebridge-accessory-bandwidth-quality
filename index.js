@@ -1,0 +1,170 @@
+/* jshint asi: true, esversion: 6, node: true, laxbreak: true, laxcomma: true, undef: true, unused: true */
+
+const FastSpeedtest = require('fast-speedtest-api')
+  , NodeCache     = require('node-cache')
+  , debug         = require('debug')('bandwidth-quality')
+  , underscore    = require('underscore')
+
+
+module.exports = function (homebridge) {
+  const Characteristic = homebridge.hap.Characteristic
+      , Service = homebridge.hap.Service
+      , qualities = { excellent: 0.90, good: 0.75, fair: 0.67, inferior: 0.50 }
+      , units = [ 'bps', 'Kbps', 'Mbps', 'Gbps', 'Bps', 'KBps', 'MBps', 'GBps' ]
+
+  homebridge.registerAccessory("homebridge-accessory-bandwidth-quality", "bandwidth-quality", BandwidthQuality)
+
+  function BandwidthQuality(log, config) {
+    if (!(this instanceof BandwidthQuality)) return new BandwidthQuality(log, config)
+
+    let nominal, oopsP, quality
+
+    this.log = log
+    this.config = config
+    if (!(this.config.nominal && this.config.token)) throw new Error('Missing configuration')
+
+    nominal = this.config.nominal
+    if (typeof nominal === 'number') nominal = { download: { unit: 'Mbps', value: nominal } }
+    else if (nominal.unit) nominal = { download: nominal }
+    oopsP = !nominal.download
+    underscore.keys(nominal).forEach((key) => {
+      const pair = nominal[key]
+
+      oopsP |= (units.indexOf(pair.unit) === -1) || (!Number.isInteger(pair.value)) || (pair.value <= 0)
+    })
+    this.config.nominal = nominal
+
+    quality = this.config.quality || qualities
+    
+    underscore.keys(quality).forEach((key) => {
+      oopsP |= (isNaN(parseFloat(quality[key]))) || (quality[key] <= 0.0) || (quality[key] > 1.0)
+    })
+    oopsP |= (quality.excellent <= quality.good) || (quality.good <= quality.fair) || (quality.fair <= quality.inferior)
+    this.config.quality = quality
+    
+    debug('config', this.config)
+    if (oopsP) throw new Error('Invalid configuration')
+
+    this.name = this.config.name
+    this.options = underscore.defaults(this.config.options || {}, { ttl: 1800, verbose: false })
+    if (this.options < 300) this.options.ttl = 1800
+    debug('options', this.options)
+
+    this.speedtest = new FastSpeedtest({ token: this.config.token, verbose: this.options.verbose })
+    this.cache = new NodeCache({ stdTTL: this.options.ttl })
+    this.statusFault = Characteristic.StatusFault.NO_FAULT
+  }
+
+  BandwidthQuality.prototype =
+  { fetchQuality: function (callback) {
+      const self = this
+
+      self._fetchQuality((err, result) => {
+        self.statusFault = (err || (!result)) ? Characteristic.StatusFault.GENERAL_FAULT : Characteristic.StatusFault.NO_FAULT
+
+        if (callback) callback(err, result)
+      })
+    }
+
+  , _fetchQuality: function (callback) {
+      const self = this
+      
+      self.cache.get('bandwidth-quality', (err, result) => {
+        if (err) return callback(err)
+
+        if (result) return callback(null, result)
+
+        self.speedtest.getSpeed().then((result) => {
+          let download, nominal, quality
+
+          if (!result) return callback()
+
+          download = FastSpeedtest.UNITS[self.config.nominal.download.unit](result)
+          nominal = self.config.nominal.download.value
+          quality = download >= Math.round(nominal * self.config.quality.excellent) ? Characteristic.AirQuality.EXCELLENT
+                  : download >= Math.round(nominal * self.config.quality.good)      ? Characteristic.AirQuality.GOOD
+                  : download >= Math.round(nominal * self.config.quality.fair)      ? Characteristic.AirQuality.FAIR
+                  : download >= Math.round(nominal * self.config.quality.inferior)  ? Characteristic.AirQuality.INFERIOR
+                  :                                                                   Characteristic.AirQuality.POOR
+          debug('getSpeed', { result, download, nominal, quality })
+
+          result = { quality, download: download }
+          self.cache.set('bandwidth-quality', result)
+
+          // it would be nice to use the actual labels, but this is a limitation of the Elgato Eve application...
+          self.historyService.addEntry({ time: Math.round(underscore.now() / 1000), temp: download })
+
+          callback(null, result)
+        }).catch((err) => {
+          self.log.error('FastSpeedtest error: ' + err.toString())
+          return callback(err)
+        })
+      })
+    }
+
+  , getAirQuality: function (callback) {
+      this.fetchQuality((err, result) => {
+        if (err) return callback(err)
+
+        callback(null, result ? result.quality : Characteristic.AirQuality.UNKNOWN)
+      })
+    }
+
+  , getStatusFault: function (callback) {
+      callback(null, this.statusFault)
+    }
+
+  , getDownloadSpeed: function (callback) {
+      const self = this
+      
+      self.fetchQuality((err, result) => {
+        if (err) return callback(err)
+
+        if (!(result && result.download)) return callback()
+
+        callback(null, result.download)
+      })
+    }
+
+  , getServices: function () {
+      const CommunityTypes = require('hap-nodejs-community-types')(homebridge, {
+        units: { DownloadSpeed: this.config.nominal.download.unit }
+      })
+      const FakeGatoHistoryService = require('fakegato-history')(homebridge)
+    
+      require('pkginfo')(module, [ 'author', 'version' ])
+
+      this.service = new Service.AirQualitySensor('Bandwidth Quality')
+
+      this.service.addCharacteristic(CommunityTypes.DownloadSpeed)
+
+      this.accessoryInformation = new Service.AccessoryInformation()
+        .setCharacteristic(Characteristic.Name, this.name)
+        .setCharacteristic(Characteristic.Manufacturer, module.exports.author.name)
+        .setCharacteristic(Characteristic.Model, "Bandwidth Quality Monitor")
+        .setCharacteristic(Characteristic.SerialNumber, 'Version ' + module.exports.version);
+
+      this.service
+        .getCharacteristic(Characteristic.AirQuality)
+        .on('get', this.getAirQuality.bind(this))
+
+      this.service
+        .getCharacteristic(Characteristic.StatusFault)
+        .on('get', this.getStatusFault.bind(this))
+
+      this.service
+        .getCharacteristic(CommunityTypes.DownloadSpeed)
+        .on('get', this.getDownloadSpeed.bind(this))
+
+      this.historyService = new FakeGatoHistoryService('weather', this, {
+        storage: 'fs',
+        disableTimer: true,
+        path: homebridge.user.cachedAccessoryPath()
+      })
+
+      setTimeout(this.fetchQuality.bind(this), 1 * 1000)
+
+      return [ this.accessoryInformation, this.service, this.historyService ]
+    }
+  }
+}
