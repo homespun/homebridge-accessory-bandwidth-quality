@@ -95,9 +95,7 @@ module.exports = function (homebridge) {
           // it would be nice to use the actual labels, but this is a limitation of the Elgato Eve application...
           const entry = {
             time: Math.round(underscore.now() / 1000),
-            temp: (download * 100.0) / nominal,
-            humidity: quality * 20,
-            ppm: 0
+            ppm: download
           }
           
           debug('history', entry)
