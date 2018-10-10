@@ -3,6 +3,7 @@
 const FastSpeedtest = require('fast-speedtest-api')
   , NodeCache     = require('node-cache')
   , debug         = require('debug')('bandwidth-quality')
+  , os            = require('os')
   , underscore    = require('underscore')
 
 
@@ -92,7 +93,15 @@ module.exports = function (homebridge) {
           self.cache.set('bandwidth-quality', result)
 
           // it would be nice to use the actual labels, but this is a limitation of the Elgato Eve application...
-          self.historyService.addEntry({ time: Math.round(underscore.now() / 1000), temp: download })
+          const entry = {
+            time: Math.round(underscore.now() / 1000),
+            temp: (download * 100.0) / nominal,
+            humidity: quality * 20,
+            ppm: 0
+          }
+          
+          debug('history', entry)
+          self.historyService.addEntry(entry)
 
           callback(null, result)
         }).catch((err) => {
@@ -156,13 +165,15 @@ module.exports = function (homebridge) {
         .getCharacteristic(CommunityTypes.DownloadSpeed)
         .on('get', this.getDownloadSpeed.bind(this))
 
-      this.historyService = new FakeGatoHistoryService('weather', this, {
+      this.historyService = new FakeGatoHistoryService('room', this, {
         storage: 'fs',
         disableTimer: true,
-        path: homebridge.user.cachedAccessoryPath()
+        path: homebridge.user.cachedAccessoryPath(),
+        filename: os.hostname().split(".")[0] + '_bandwidth-quality_persist.json'
       })
 
       setTimeout(this.fetchQuality.bind(this), 1 * 1000)
+      setInterval(this.fetchQuality.bind(this), 1 * 60 * 60 * 1000)
 
       return [ this.accessoryInformation, this.service, this.historyService ]
     }
