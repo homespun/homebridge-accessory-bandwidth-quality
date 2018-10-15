@@ -12,6 +12,13 @@ module.exports = function (homebridge) {
       , Service = homebridge.hap.Service
       , qualities = { excellent: 0.90, good: 0.75, fair: 0.67, inferior: 0.50 }
       , units = [ 'bps', 'Kbps', 'Mbps', 'Gbps', 'Bps', 'KBps', 'MBps', 'GBps' ]
+      , qual2ppm = underscore.invert(
+        {  500: Characteristic.AirQuality.EXCELLENT
+        ,  750: Characteristic.AirQuality.GOOD
+        , 1000: Characteristic.AirQuality.FAIR
+        , 1250: Characteristic.AirQuality.INFERIOR
+        , 1750: Characteristic.AirQuality.POOR
+        })
 
   homebridge.registerAccessory("homebridge-accessory-bandwidth-quality", "bandwidth-quality", BandwidthQuality)
 
@@ -95,7 +102,9 @@ module.exports = function (homebridge) {
           // it would be nice to use the actual labels, but this is a limitation of the Elgato Eve application...
           const entry = {
             time: Math.round(underscore.now() / 1000),
-            ppm: download
+            ppm: parseFloat(qual2ppm[quality]),
+            temp: download,
+            humidity: (1.0 - (download / nominal)) * 100
           }
           
           debug('history', entry)
@@ -141,25 +150,25 @@ module.exports = function (homebridge) {
     
       require('pkginfo')(module, [ 'author', 'version' ])
 
-      this.service = new Service.AirQualitySensor('Bandwidth Quality')
+      this.qualityService = new Service.AirQualitySensor('Bandwidth Quality')
 
-      this.service.addCharacteristic(CommunityTypes.DownloadSpeed)
+      this.qualityService.addCharacteristic(CommunityTypes.DownloadSpeed)
 
-      this.accessoryInformation = new Service.AccessoryInformation()
+      this.informationService = new Service.AccessoryInformation()
         .setCharacteristic(Characteristic.Name, this.name)
         .setCharacteristic(Characteristic.Manufacturer, module.exports.author.name)
         .setCharacteristic(Characteristic.Model, "Bandwidth Quality Monitor")
         .setCharacteristic(Characteristic.SerialNumber, 'Version ' + module.exports.version);
 
-      this.service
+      this.qualityService
         .getCharacteristic(Characteristic.AirQuality)
         .on('get', this.getAirQuality.bind(this))
 
-      this.service
+      this.qualityService
         .getCharacteristic(Characteristic.StatusFault)
         .on('get', this.getStatusFault.bind(this))
 
-      this.service
+      this.qualityService
         .getCharacteristic(CommunityTypes.DownloadSpeed)
         .on('get', this.getDownloadSpeed.bind(this))
 
@@ -173,7 +182,7 @@ module.exports = function (homebridge) {
       setTimeout(this.fetchQuality.bind(this), 1 * 1000)
       setInterval(this.fetchQuality.bind(this), 1 * 60 * 60 * 1000)
 
-      return [ this.accessoryInformation, this.service, this.historyService ]
+      return [ this.informationService, this.qualityService, this.historyService ]
     }
   }
 }
