@@ -148,17 +148,19 @@ module.exports = function (homebridge) {
       })
       const FakeGatoHistoryService = require('fakegato-history')(homebridge)
     
-      require('pkginfo')(module, [ 'author', 'version' ])
+      require('pkginfo')(module, [ 'name', 'author', 'version' ])
 
       this.qualityService = new Service.AirQualitySensor('Bandwidth Quality')
 
       this.qualityService.addCharacteristic(CommunityTypes.DownloadSpeed)
 
       this.informationService = new Service.AccessoryInformation()
-        .setCharacteristic(Characteristic.Name, this.name)
+        .setCharacteristic(Characteristic.Identify, module.exports.name)
         .setCharacteristic(Characteristic.Manufacturer, module.exports.author.name)
         .setCharacteristic(Characteristic.Model, "Bandwidth Quality Monitor")
-        .setCharacteristic(Characteristic.SerialNumber, 'Version ' + module.exports.version);
+        .setCharacteristic(Characteristic.Name, this.name)
+        .setCharacteristic(Characteristic.SerialNumber, '1539641092069')
+        .setCharacteristic(Characteristic.FirmwareRevision, module.exports.version)
 
       this.qualityService
         .getCharacteristic(Characteristic.AirQuality)
