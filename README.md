@@ -38,7 +38,7 @@ Edit `~/.homebridge/config.json`, inside `"accessories": [ ... ]` add:
     , "name"      : "Bandwidth Quality"
     , "token"     : "..."
     // choices are in bits (bps, Kbps, Mbps, or Gbps) or octets (Bps, KBps, MBps, GBps)
-    , "nominal"   : { "units": "Mbps", "value": 300 }
+    , "nominal"   : { "unit": "Mbps", "value": 300 }
 
     // optional, here are the defaults
     // default TTL is 30m, minimum TTL is 5m

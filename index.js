@@ -35,6 +35,7 @@ module.exports = function (homebridge) {
     nominal = this.config.nominal
     if (typeof nominal === 'number') nominal = { download: { unit: 'Mbps', value: nominal } }
     else if (nominal.unit) nominal = { download: nominal }
+    else if (nominal.units) nominal = { download: { unit: nominal.units, value: nominal.value } }
     oopsP = !nominal.download
     underscore.keys(nominal).forEach((key) => {
       const pair = nominal[key]
