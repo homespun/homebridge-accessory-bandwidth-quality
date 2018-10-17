@@ -3,6 +3,7 @@
 const FastSpeedtest = require('fast-speedtest-api')
   , NodeCache     = require('node-cache')
   , debug         = require('debug')('bandwidth-quality')
+  , moment        = require('moment')
   , os            = require('os')
   , underscore    = require('underscore')
 
@@ -101,7 +102,7 @@ module.exports = function (homebridge) {
 
           // it would be nice to use the actual labels, but this is a limitation of the Elgato Eve application...
           const entry = {
-            time: Math.round(underscore.now() / 1000),
+            time: moment().unix(),
             ppm: parseFloat(qual2ppm[quality]),
             temp: download,
             humidity: (1.0 - (download / nominal)) * 100
@@ -183,7 +184,7 @@ module.exports = function (homebridge) {
       })
 
       setTimeout(this.fetchQuality.bind(this), 1 * 1000)
-      setInterval(this.fetchQuality.bind(this), 1 * 60 * 60 * 1000)
+      setInterval(this.fetchQuality.bind(this), 15 * 60 * 1000)
 
       return [ this.informationService, this.qualityService, this.historyService ]
     }
