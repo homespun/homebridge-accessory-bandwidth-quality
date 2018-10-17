@@ -174,6 +174,7 @@ module.exports = function (homebridge) {
         .getCharacteristic(CommunityTypes.DownloadSpeed)
         .on('get', this.getDownloadSpeed.bind(this))
 
+      this.displayName = this.name
       this.historyService = new FakeGatoHistoryService('room', this, {
         storage: 'fs',
         disableTimer: true,
