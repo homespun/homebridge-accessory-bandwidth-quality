@@ -7,18 +7,17 @@ const FastSpeedtest = require('fast-speedtest-api')
   , os            = require('os')
   , underscore    = require('underscore')
 
-
 module.exports = function (homebridge) {
   const Characteristic = homebridge.hap.Characteristic
       , Service = homebridge.hap.Service
       , qualities = { excellent: 0.90, good: 0.75, fair: 0.67, inferior: 0.50 }
       , units = [ 'bps', 'Kbps', 'Mbps', 'Gbps', 'Bps', 'KBps', 'MBps', 'GBps' ]
       , qual2ppm = underscore.invert(
-        {  500: Characteristic.AirQuality.EXCELLENT
-        ,  750: Characteristic.AirQuality.GOOD
-        , 1000: Characteristic.AirQuality.FAIR
-        , 1250: Characteristic.AirQuality.INFERIOR
-        , 1750: Characteristic.AirQuality.POOR
+        {  451: Characteristic.AirQuality.EXCELLENT    //  450- 700
+        ,  701: Characteristic.AirQuality.GOOD         //  700-1100
+        , 1101: Characteristic.AirQuality.FAIR         // 1100-1600
+        , 1601: Characteristic.AirQuality.INFERIOR     // 1600-2100
+        , 2101: Characteristic.AirQuality.POOR         // 2100-5000
         })
 
   homebridge.registerAccessory("homebridge-accessory-bandwidth-quality", "bandwidth-quality", BandwidthQuality)
@@ -85,32 +84,23 @@ module.exports = function (homebridge) {
         if (result) return callback(null, result)
 
         self.speedtest.getSpeed().then((result) => {
-          let download, nominal, quality
-
           if (!result) return callback()
 
-          download = FastSpeedtest.UNITS[self.config.nominal.download.unit](result)
-          nominal = self.config.nominal.download.value
-          quality = download >= Math.round(nominal * self.config.quality.excellent) ? Characteristic.AirQuality.EXCELLENT
-                  : download >= Math.round(nominal * self.config.quality.good)      ? Characteristic.AirQuality.GOOD
-                  : download >= Math.round(nominal * self.config.quality.fair)      ? Characteristic.AirQuality.FAIR
-                  : download >= Math.round(nominal * self.config.quality.inferior)  ? Characteristic.AirQuality.INFERIOR
-                  :                                                                   Characteristic.AirQuality.POOR
-          debug('getSpeed', { result, download, nominal, quality })
+          const download = FastSpeedtest.UNITS[self.config.nominal.download.unit](result)
+              , nominal = self.config.nominal.download.value
+              , quality = download >= Math.round(nominal * self.config.quality.excellent) ? Characteristic.AirQuality.EXCELLENT
+                        : download >= Math.round(nominal * self.config.quality.good)      ? Characteristic.AirQuality.GOOD
+                        : download >= Math.round(nominal * self.config.quality.fair)      ? Characteristic.AirQuality.FAIR
+                        : download >= Math.round(nominal * self.config.quality.inferior)  ? Characteristic.AirQuality.INFERIOR
+                        :                                                                   Characteristic.AirQuality.POOR
+              , ppm = parseFloat(qual2ppm[quality])
+              , humidity = (download * 100.0) / nominal
 
-          result = { quality, download: download }
+          self.historyService.addEntry({ time: moment().unix(), ppm, humidity })
+
+          result = { download, quality, ppm, humidity }
           self.cache.set('bandwidth-quality', result)
-
-          // it would be nice to use the actual labels, but this is a limitation of the Elgato Eve application...
-          const entry = {
-            time: moment().unix(),
-            ppm: parseFloat(qual2ppm[quality]),
-            temp: download,
-            humidity: (1.0 - (download / nominal)) * 100
-          }
-          
-          debug('history', entry)
-          self.historyService.addEntry(entry)
+          debug('getSpeed', result)
 
           callback(null, result)
         }).catch((err) => {
@@ -133,14 +123,26 @@ module.exports = function (homebridge) {
     }
 
   , getDownloadSpeed: function (callback) {
-      const self = this
-      
-      self.fetchQuality((err, result) => {
+      this.fetchQuality((err, result) => {
         if (err) return callback(err)
 
-        if (!(result && result.download)) return callback()
+        callback(null, result && result.download)
+      })
+    }
 
-        callback(null, result.download)
+  , getEveAirQuality: function (callback) {
+      this.fetchQuality((err, result) => {
+        if (err) return callback(err)
+
+        callback(null, result && result.ppm)
+      })
+    }
+
+  , getCurrentRelativeHumidity: function (callback) {
+      this.fetchQuality((err, result) => {
+        if (err) return callback(err)
+
+        callback(null, result && result.humidity)
       })
     }
 
@@ -176,6 +178,14 @@ module.exports = function (homebridge) {
         .getCharacteristic(CommunityTypes.DownloadSpeed)
         .on('get', this.getDownloadSpeed.bind(this))
 
+      this.qualityService
+        .getCharacteristic(CommunityTypes.EveAirQuality)
+        .on('get', this.getEveAirQuality.bind(this))
+
+      this.qualityService
+        .getCharacteristic(Characteristic.CurrentRelativeHumidity)
+        .on('get', this.getCurrentRelativeHumidity.bind(this))
+
       this.displayName = this.name
       this.historyService = new FakeGatoHistoryService('room', this, {
         storage: 'fs',
@@ -185,7 +195,7 @@ module.exports = function (homebridge) {
       })
 
       setTimeout(this.fetchQuality.bind(this), 1 * 1000)
-      setInterval(this.fetchQuality.bind(this), 15 * 60 * 1000)
+      setInterval(this.fetchQuality.bind(this), this.options.ttl * 1000)
 
       return [ this.informationService, this.qualityService, this.historyService ]
     }

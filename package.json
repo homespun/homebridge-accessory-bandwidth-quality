@@ -1,6 +1,6 @@
 {
   "name": "homebridge-accessory-bandwidth-quality",
-  "version": "0.3.0",
+  "version": "0.9.0",
   "description": "A accessory plugin for Homebridge: https://github.com/nfarina/homebridge",
   "author": {
     "name": "Marshall Rose",
