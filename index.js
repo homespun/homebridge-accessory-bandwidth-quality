@@ -103,7 +103,7 @@ module.exports = function (homebridge) {
               , actual   = download / nominal
               , humidity = actual * 100
               , range = self.config.ranges[quality]
-              , ppm = Math.round(range.ppm.lower + ((range.ppm.delta * (actual - range.quality.lower)) / range.quality.delta))
+              , ppm = Math.round(range.ppm.lower + ((range.ppm.delta * (range.quality.upper - actual)) / range.quality.delta))
 
           self.historyService.addEntry({ time: moment().unix(), ppm, humidity })
 
