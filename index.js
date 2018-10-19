@@ -12,13 +12,6 @@ module.exports = function (homebridge) {
       , Service = homebridge.hap.Service
       , qualities = { excellent: 0.90, good: 0.75, fair: 0.67, inferior: 0.50 }
       , units = [ 'bps', 'Kbps', 'Mbps', 'Gbps', 'Bps', 'KBps', 'MBps', 'GBps' ]
-      , qual2ppm = underscore.invert(
-        {  451: Characteristic.AirQuality.EXCELLENT    //  450- 700
-        ,  701: Characteristic.AirQuality.GOOD         //  700-1100
-        , 1101: Characteristic.AirQuality.FAIR         // 1100-1600
-        , 1601: Characteristic.AirQuality.INFERIOR     // 1600-2100
-        , 2101: Characteristic.AirQuality.POOR         // 2100-5000
-        })
 
   homebridge.registerAccessory("homebridge-accessory-bandwidth-quality", "bandwidth-quality", BandwidthQuality)
 
@@ -50,7 +43,20 @@ module.exports = function (homebridge) {
     })
     oopsP |= (quality.excellent <= quality.good) || (quality.good <= quality.fair) || (quality.fair <= quality.inferior)
     this.config.quality = quality
-    
+
+    let lower = 0, upper = 1.0, ranges = {}
+    for (let q of [ 'excellent', 'good', 'fair', 'inferior', 'poor' ]) {
+      const key = Characteristic.AirQuality[q.toUpperCase()]
+      const high = { excellent: 700, good: 1100, fair: 1600, inferior: 2100, poor: 5000 }
+
+      ranges[key] = { quality : { lower: quality[q], upper: upper,   delta: upper - quality[q] }
+                    , ppm     : { lower: lower,      upper: high[q], delta: high[q] - lower    }
+                    }
+      upper = quality[q]
+      lower = high[q] + 1
+    }
+    this.config.ranges = ranges
+
     debug('config', this.config)
     if (oopsP) throw new Error('Invalid configuration')
 
@@ -93,8 +99,10 @@ module.exports = function (homebridge) {
                         : download >= Math.round(nominal * self.config.quality.fair)      ? Characteristic.AirQuality.FAIR
                         : download >= Math.round(nominal * self.config.quality.inferior)  ? Characteristic.AirQuality.INFERIOR
                         :                                                                   Characteristic.AirQuality.POOR
-              , ppm = parseFloat(qual2ppm[quality])
-              , humidity = (download * 100.0) / nominal
+              , actual   = download / nominal
+              , humidity = actual * 100
+              , range = self.config.ranges[quality]
+              , ppm = range.ppm.lower + ((range.ppm.delta * (actual - range.quality.lower)) / range.quality.delta)
 
           self.historyService.addEntry({ time: moment().unix(), ppm, humidity })
 
