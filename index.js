@@ -102,11 +102,11 @@ module.exports = function (homebridge) {
               , actual   = download / nominal
               , humidity = actual * 100
               , range = self.config.ranges[quality]
-              , ppm = range.ppm.lower + ((range.ppm.delta * (actual - range.quality.lower)) / range.quality.delta)
+              , ppm = Math.round(range.ppm.lower + ((range.ppm.delta * (actual - range.quality.lower)) / range.quality.delta))
 
           self.historyService.addEntry({ time: moment().unix(), ppm, humidity })
 
-          result = { download, quality, ppm, humidity }
+          result = { quality, download, ppm, humidity }
           self.cache.set('bandwidth-quality', result)
           debug('getSpeed', result)
 
