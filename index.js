@@ -42,9 +42,10 @@ module.exports = function (homebridge) {
       oopsP |= (isNaN(parseFloat(quality[key]))) || (quality[key] <= 0.0) || (quality[key] > 1.0)
     })
     oopsP |= (quality.excellent <= quality.good) || (quality.good <= quality.fair) || (quality.fair <= quality.inferior)
+    quality.poor = 0.0
     this.config.quality = quality
 
-    let lower = 0, upper = 1.0, ranges = {}
+    let lower = 500, upper = 1.0, ranges = {}
     for (let q of [ 'excellent', 'good', 'fair', 'inferior', 'poor' ]) {
       const key = Characteristic.AirQuality[q.toUpperCase()]
       const high = { excellent: 700, good: 1100, fair: 1600, inferior: 2100, poor: 5000 }
@@ -57,7 +58,7 @@ module.exports = function (homebridge) {
     }
     this.config.ranges = ranges
 
-    debug('config', this.config)
+    debug('config', JSON.stringify(this.config, null, 2))
     if (oopsP) throw new Error('Invalid configuration')
 
     this.name = this.config.name
