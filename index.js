@@ -86,9 +86,7 @@ module.exports = function (homebridge) {
       const self = this
       
       self.cache.get('bandwidth-quality', (err, result) => {
-        if (err) return callback(err)
-
-        if (result) return callback(null, result)
+        if (err || result) return callback(err, result)
 
         self.speedtest.getSpeed().then((result) => {
           if (!result) return callback()
@@ -100,7 +98,7 @@ module.exports = function (homebridge) {
                         : download >= Math.round(nominal * self.config.quality.fair)      ? Characteristic.AirQuality.FAIR
                         : download >= Math.round(nominal * self.config.quality.inferior)  ? Characteristic.AirQuality.INFERIOR
                         :                                                                   Characteristic.AirQuality.POOR
-              , actual   = download / nominal
+              , actual   = (download >= nominal) ? 1.0 : (download / nominal)
               , humidity = actual * 100
               , range = self.config.ranges[quality]
               , ppm = Math.round(range.ppm.lower + ((range.ppm.delta * (range.quality.upper - actual)) / range.quality.delta))
@@ -121,9 +119,7 @@ module.exports = function (homebridge) {
 
   , getAirQuality: function (callback) {
       this.fetchQuality((err, result) => {
-        if (err) return callback(err)
-
-        callback(null, result ? result.quality : Characteristic.AirQuality.UNKNOWN)
+        callback(err, result && result.quality)
       })
     }
 
@@ -133,25 +129,19 @@ module.exports = function (homebridge) {
 
   , getDownloadSpeed: function (callback) {
       this.fetchQuality((err, result) => {
-        if (err) return callback(err)
-
-        callback(null, result && result.download)
+        callback(err, result && result.download)
       })
     }
 
   , getEveAirQuality: function (callback) {
       this.fetchQuality((err, result) => {
-        if (err) return callback(err)
-
-        callback(null, result && result.ppm)
+        callback(err, result && result.ppm)
       })
     }
 
   , getCurrentRelativeHumidity: function (callback) {
       this.fetchQuality((err, result) => {
-        if (err) return callback(err)
-
-        callback(null, result && result.humidity)
+        callback(err, result && result.humidity)
       })
     }
 
