@@ -1,6 +1,6 @@
 {
   "name": "homebridge-accessory-bandwidth-quality",
-  "version": "0.9.3",
+  "version": "0.9.4",
   "description": "A accessory plugin for Homebridge: https://github.com/nfarina/homebridge",
   "author": {
     "name": "Marshall Rose",
@@ -35,9 +35,9 @@
     "fakegato-history": "^0.5.1",
     "fast-speedtest-api": "^0.3.1",
     "hap-nodejs-community-types": "https://github.com/homespun/hap-nodejs-community-types.git",
-    "lodash": "4.17.5",
+    "lodash": "4.17.11",
     "moment": "^2.20.1",
-    "node-cache": "3.0.0",
+    "node-cache": "4.2.0",
     "pkginfo": ">=0.4.0",
     "underscore": "1.8.3"
   }
