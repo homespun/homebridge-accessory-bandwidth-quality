@@ -41,8 +41,8 @@ Edit `~/.homebridge/config.json`, inside `"accessories": [ ... ]` add:
     , "nominal"   : { "unit": "Mbps", "value": 300 }
 
     // optional, here are the defaults
-    // default TTL is 30m, minimum TTL is 5m
-    , "options"   : { "ttl": 1800 }
+    // default TTL is 10m, minimum TTL is 5m
+    , "options"   : { "ttl": 600 }
     }
 
 Please read [this](https://github.com/branchard/fast-speedtest-api#how-to-get-app-token-) to determine the value of the `token` parameter.

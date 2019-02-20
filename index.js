@@ -1,11 +1,11 @@
 /* jshint asi: true, esversion: 6, node: true, laxbreak: true, laxcomma: true, undef: true, unused: true */
 
 const FastSpeedtest = require('fast-speedtest-api')
-  , NodeCache     = require('node-cache')
-  , debug         = require('debug')('bandwidth-quality')
-  , moment        = require('moment')
-  , os            = require('os')
-  , underscore    = require('underscore')
+    , NodeCache     = require('node-cache')
+    , debug         = require('debug')('bandwidth-quality')
+    , moment        = require('moment')
+    , os            = require('os')
+    , underscore    = require('underscore')
 
 module.exports = function (homebridge) {
   const Characteristic = homebridge.hap.Characteristic
@@ -48,7 +48,7 @@ module.exports = function (homebridge) {
     let lower = 500, upper = 1.0, ranges = {}
     for (let q of [ 'excellent', 'good', 'fair', 'inferior', 'poor' ]) {
       const key = Characteristic.AirQuality[q.toUpperCase()]
-      const high = { excellent: 700, good: 1100, fair: 1600, inferior: 2100, poor: 5000 }
+          , high = { excellent: 700, good: 1100, fair: 1600, inferior: 2100, poor: 5000 }
 
       ranges[key] = { quality : { lower: quality[q], upper: upper,   delta: upper - quality[q] }
                     , ppm     : { lower: lower,      upper: high[q], delta: high[q] - lower    }
@@ -62,8 +62,8 @@ module.exports = function (homebridge) {
     if (oopsP) throw new Error('Invalid configuration')
 
     this.name = this.config.name
-    this.options = underscore.defaults(this.config.options || {}, { ttl: 1800, verbose: false })
-    if (this.options < 300) this.options.ttl = 1800
+    this.options = underscore.defaults(this.config.options || {}, { ttl: 600, verbose: false })
+    if (this.options < 300) this.options.ttl = 600
     debug('options', this.options)
 
     this.speedtest = new FastSpeedtest({ token: this.config.token, verbose: this.options.verbose })
@@ -149,7 +149,7 @@ module.exports = function (homebridge) {
       const CommunityTypes = require('hap-nodejs-community-types')(homebridge, {
         units: { DownloadSpeed: this.config.nominal.download.unit }
       })
-      const FakeGatoHistoryService = require('fakegato-history')(homebridge)
+          , FakeGatoHistoryService = require('fakegato-history')(homebridge)
     
       require('pkginfo')(module, [ 'name', 'author', 'version' ])
 
