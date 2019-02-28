@@ -63,7 +63,7 @@ module.exports = function (homebridge) {
 
     this.name = this.config.name
     this.options = underscore.defaults(this.config.options || {}, { ttl: 600, verbose: false })
-    if (this.options < 300) this.options.ttl = 600
+    if (this.options.ttl < 300) this.options.ttl = 600
     debug('options', this.options)
 
     this.speedtest = new FastSpeedtest({ token: this.config.token, verbose: this.options.verbose })
