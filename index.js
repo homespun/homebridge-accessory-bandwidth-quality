@@ -21,7 +21,7 @@ module.exports = function (homebridge) {
     let nominal, oopsP, quality
 
     this.log = log
-    this.config = config
+    this.config = config || { accessory: 'bandwidth-quality' }
     if (!(this.config.nominal && this.config.token)) throw new Error('Missing configuration')
 
     nominal = this.config.nominal
