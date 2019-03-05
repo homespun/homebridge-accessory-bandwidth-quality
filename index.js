@@ -187,10 +187,11 @@ module.exports = function (homebridge) {
 
       this.displayName = this.name
       this.historyService = new FakeGatoHistoryService('room', this, {
-        storage: 'fs',
-        disableTimer: true,
-        path: homebridge.user.cachedAccessoryPath(),
-        filename: os.hostname().split(".")[0] + '_bandwidth-quality_persist.json'
+        storage      : 'fs',
+        disableTimer : true,
+        length       : Math.pow(2, 14),
+        path         : homebridge.user.cachedAccessoryPath(),
+        filename     : os.hostname().split(".")[0] + '_bandwidth-quality_persist.json'
       })
 
       setTimeout(this.fetchQuality.bind(this), 1 * 1000)
