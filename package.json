@@ -35,7 +35,7 @@
     "fakegato-history": "^0.5.2",
     "fast-speedtest-api": "^0.3.1",
     "hap-nodejs-community-types": "https://github.com/homespun/hap-nodejs-community-types.git",
-    "lodash": "4.17.13",
+    "lodash": "4.17.19",
     "moment": "^2.20.1",
     "node-cache": "4.2.0",
     "pkginfo": ">=0.4.0",
